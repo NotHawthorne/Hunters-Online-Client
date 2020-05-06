@@ -92,5 +92,6 @@ int	PacketManager::emptyQueue(int fd)
 		write(fd, p->data, p->size);
 		q.pop();
 	}
+	usleep(200);
 	return (1);
 }

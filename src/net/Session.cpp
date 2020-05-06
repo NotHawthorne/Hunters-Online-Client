@@ -13,7 +13,8 @@ SessionManager::SessionManager()
 		printf("CANNOT CONNECT\n");
 		return ;
 	}
-	fcntl(conn_fd, F_SETFL, fcntl(conn_fd, F_GETFL) | O_NONBLOCK);
+	int	f = fcntl(conn_fd, F_GETFL);
+	fcntl(conn_fd, F_SETFL, f | O_NONBLOCK);
 }
 
 SessionManager::~SessionManager()
@@ -42,34 +43,42 @@ int	SessionManager::getCharList(int amt)
 int	SessionManager::startLoop()
 {
 	int		read_bytes = 0;
-
 	
 	while (1)
 	{
 		read_bytes = 0;
-		t_packet_header	h;
-		if ((read_bytes = read(conn_fd, &h, sizeof(t_packet_header)) > 0))
+		t_packet_header	*h = new t_packet_header;
+		bzero(h, sizeof(t_packet_header));
+		packet_man->emptyQueue(conn_fd);
+		if ((read_bytes = recv(conn_fd, h, sizeof(t_packet_header), MSG_WAITALL) > 0))
 		{
+			printf("%d %d\n", (int)sizeof(t_packet_header), read_bytes);
+			/*
 			while (read_bytes < (int)sizeof(t_packet_header))
 			{
+				printf("here\n");
 				int rb;
-				if ((rb = read(conn_fd, ((char*)&h) + read_bytes,
+				if ((rb = read(conn_fd, ((char*)h) + read_bytes,
 						sizeof(t_packet_header) - read_bytes)) > 0)
+				{
 					read_bytes += rb;
-			}
-			printf("recieved data %d\n", h.cmd);
-			switch (h.cmd)
+					printf("%d\n", rb);
+				}
+			}*/
+			printf("recieved data %d amt %d %s %d\n", h->cmd, h->amt, h->id, read_bytes);
+			switch (h->cmd)
 			{
 				case SERVER_LOGIN_FAIL:
 					return (-1);
 					break ;
 				case SERVER_LOGIN_SUCCESS:
-					getCharList(h.amt);
+					getCharList(h->amt);
 					break ;
 			}
 		}
 		else
 			packet_man->emptyQueue(conn_fd);
+		delete h;
 	}
 	return (0);
 }
